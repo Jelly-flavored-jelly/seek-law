@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>장면 속 법 찾기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style id="css">
+:root{
+  --bg:#fbf8f3; --ink:#2d2a26; --muted:#7a736b; --line:#e7e0d6; --card:#ffffff;
+  --pub:#3b6fd8; --pub-bg:#eaf1ff; --pri:#2f9a63; --pri-bg:#e7f6ee; --soc:#e0782b; --soc-bg:#fff0e3;
+  --ok:#2f9a63; --bad:#d64545; --accent:#ff8fab;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:16px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-family:"Jua",sans-serif;font-weight:400;font-size:2rem;margin:0;letter-spacing:.5px}
+h1 small{display:block;font-family:"Noto Sans KR";font-size:.9rem;color:var(--muted);letter-spacing:0}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{border:2px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:500}
+.tab.on{border-color:var(--ink);background:var(--ink);color:#fff}
+.scene{background:#fff;border:2px solid var(--line);border-radius:18px;padding:16px 18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.scene .ep{font-size:.85rem;color:var(--muted)}
+.scene h2{font-family:"Jua";font-weight:400;font-size:1.45rem;margin:2px 0 6px}
+.scene p{margin:0}
+.watch{display:inline-flex;align-items:center;gap:8px;background:#ff0033;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:14px;white-space:nowrap}
+.watch:hover{filter:brightness(1.08)}
+.watch .t{font-weight:400;font-size:.85rem;opacity:.9}
+.clips{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.clips .watch{justify-content:space-between}
+.nolink.small{padding:8px 12px;font-size:.85rem}
+.eclips{display:flex;flex-direction:column;gap:8px}
+.eclip{display:grid;grid-template-columns:1fr 1.4fr auto auto;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:8px;background:#fcfaf6}
+@media (max-width:760px){.eclip{grid-template-columns:1fr}}
+.nolink{color:var(--muted);font-size:.9rem;border:2px dashed var(--line);border-radius:14px;padding:10px 14px;text-align:center}
+.guide{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:18px 0 8px;flex-wrap:wrap}
+.guide b{font-family:"Jua";font-weight:400;font-size:1.15rem}
+.chk{display:flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted);cursor:pointer}
+.pool{min-height:110px;background:#f3eee6;border:2px dashed #d9cfc1;border-radius:18px;padding:12px;display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start}
+.pool.empty::after{content:"카드를 모두 옮겼어요! 아래 '정답 확인'을 눌러 보세요.";color:var(--muted);font-size:.95rem;margin:auto}
+.zones{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.zone{border-radius:18px;border:2px solid;min-height:240px;padding:10px;display:flex;flex-direction:column;gap:8px;transition:transform .12s, box-shadow .12s}
+.zone[data-zone=public]{border-color:var(--pub);background:var(--pub-bg)}
+.zone[data-zone=private]{border-color:var(--pri);background:var(--pri-bg)}
+.zone[data-zone=social]{border-color:var(--soc);background:var(--soc-bg)}
+.zone.hot{transform:scale(1.015);box-shadow:0 0 0 4px rgba(0,0,0,.08)}
+.zone.target{cursor:pointer;box-shadow:0 0 0 4px rgba(255,143,171,.55)}
+.zhead{padding:4px 4px 6px}
+.zhead h3{margin:0;font-family:"Jua";font-weight:400;font-size:1.5rem}
+.zone[data-zone=public] h3{color:var(--pub)} .zone[data-zone=private] h3{color:var(--pri)} .zone[data-zone=social] h3{color:var(--soc)}
+.zhead p{margin:2px 0 0;font-size:.8rem;color:#5c564f}
+.hidehint .zhead p{display:none}
+.card{background:var(--card);border:2px solid #d8d0c4;border-radius:14px;padding:9px 12px;box-shadow:0 2px 0 #d8d0c4;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;max-width:320px;position:relative}
+.pool .card{flex:1 1 230px}
+.zone .card{max-width:none}
+.card .s{font-size:.95rem}
+.card .l{margin-top:4px;font-weight:700;font-size:.92rem;display:inline-block;background:#f6f1ea;border-radius:8px;padding:1px 8px}
+.card.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,143,171,.5)}
+.card.ghostsrc{opacity:.3}
+.ghost{position:fixed;pointer-events:none;z-index:999;transform:rotate(-2deg);box-shadow:0 10px 24px rgba(0,0,0,.18);cursor:grabbing}
+.card.ok{border-color:var(--ok);box-shadow:0 2px 0 var(--ok)}
+.card.bad{border-color:var(--bad);box-shadow:0 2px 0 var(--bad)}
+.card .mark{position:absolute;top:-10px;right:-8px;width:26px;height:26px;border-radius:50%;color:#fff;font-weight:700;display:grid;place-items:center;font-size:.9rem}
+.card.ok .mark{background:var(--ok)} .card.bad .mark{background:var(--bad)}
+.card .ex{display:none;margin-top:6px;font-size:.85rem;color:#4b463f;border-top:1px dashed var(--line);padding-top:6px}
+.checked .card{cursor:default}
+.checked .card .ex{display:block}
+.bar{display:flex;gap:10px;justify-content:center;margin:18px 0 6px;flex-wrap:wrap}
+.btn{border:none;border-radius:14px;padding:12px 22px;font-weight:700;cursor:pointer;background:var(--ink);color:#fff}
+.btn.ghostbtn{background:#fff;color:var(--ink);border:2px solid var(--line)}
+.btn.small{padding:7px 12px;font-size:.88rem;border-radius:10px}
+.btn.danger{background:#fff;color:var(--bad);border:2px solid #f1c9c9}
+.result{text-align:center;font-family:"Jua";font-size:1.4rem;margin:8px 0}
+.discuss{background:#fff;border:2px solid var(--accent);border-radius:18px;padding:14px 18px;margin-top:14px}
+.discuss b{font-family:"Jua";font-weight:400;font-size:1.15rem;color:#d4577a}
+.discuss p{margin:4px 0 0}
+footer{margin-top:36px;text-align:center;font-size:.85rem;color:var(--muted)}
+footer button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer}
+/* editor */
+.editor{background:#fff;border:2px solid var(--line);border-radius:18px;padding:16px}
+.editor h2{font-family:"Jua";font-weight:400;margin:0 0 10px}
+.erow{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;margin-bottom:8px}
+.erow label{font-size:.88rem;color:var(--muted)}
+.editor input,.editor textarea,.editor select{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:7px 10px;background:#fffdf9}
+.editor textarea{min-height:60px;resize:vertical}
+.times{display:flex;gap:8px;align-items:center}
+.times input{width:110px}
+.ecards{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.ecard{border:1.5px solid var(--line);border-radius:12px;padding:10px;display:grid;grid-template-columns:1fr 1fr 130px auto;gap:8px;align-items:start;background:#fcfaf6}
+.ecard textarea{min-height:40px}
+.ecard .full{grid-column:1 / -1}
+.etop{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.msg{font-size:.9rem;margin-top:8px;min-height:1.2em}
+.msg.err{color:var(--bad)} .msg.good{color:var(--ok)}
+.jsonbox{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.jsonbox textarea{min-height:120px;font-family:ui-monospace,monospace;font-size:.8rem}
+@media (max-width:760px){
+  .zones{grid-template-columns:1fr}
+  .zone{min-height:120px}
+  .scene{grid-template-columns:1fr}
+  .ecard{grid-template-columns:1fr}
+  .erow{grid-template-columns:1fr}
+}
+</style>
+<script id="data" type="application/json">{"activities":[{"id":"a1","title":"모몽가와 수박","episode":"371화","summary":"수박을 먹고 있던 치이카와에게 모몽가가 달라붙어 수박씨를 발라 달라고 조른다. 치이카와가 싫다고 해도 계속 귀찮게 해서 결국 울리고 만다. 이를 본 우사기가 수박씨를 뱉어 모몽가를 쫓아낸다.","cards":[{"scene":"모몽가가 싫다는 치이카와에게 달라붙어 울 때까지 괴롭힌다","law":"형법 – 폭행죄","zone":"public","ex":"다치게 하지 않았더라도 상대가 싫다는데 몸에 달라붙거나 잡아당기는 것처럼 힘을 쓰면 폭행이 될 수 있어요. 범죄를 국가가 처벌하는 법이라서 공법이에요."},{"scene":"모몽가가 싫다는 치이카와에게 수박씨를 발라 달라고 억지로 시키려 한다","law":"형법 – 강요죄","zone":"public","ex":"폭행이나 협박으로 해야 할 의무가 없는 일을 억지로 시키는 것은 강요죄예요. 이것도 국가가 처벌하는 범죄라서 공법이에요."},{"scene":"만약 경찰이 모몽가를 불러 조사한다면","law":"형사소송법","zone":"public","ex":"국가(경찰, 검찰, 법원)가 범죄를 수사하고 재판하는 절차를 정한 법이라서 공법이에요."},{"scene":"모몽가가 \"내 수박이니까 나도 줘\"라고 하고, 하치와레는 \"수박 줘서 고마워\"라고 한다","law":"민법 – 증여계약","zone":"private","ex":"대가 없이 주겠다는 사람과 받겠다는 사람의 뜻이 맞으면 증여계약이 생겨요. 하치와레의 \"고마워\"는 받겠다는 뜻이에요. 개인과 개인 사이의 약속이라서 사법이에요."},{"scene":"만약 치이카와가 괴롭힘으로 받은 마음의 상처를 돈으로 배상하라고 한다면","law":"민법 – 정신적 손해배상(위자료)","zone":"private","ex":"다른 사람 때문에 입은 손해는 몸이나 물건뿐 아니라 마음의 상처도 돈으로 배상받을 수 있어요. 개인이 개인에게 요구하는 것이라서 사법이에요."}],"discuss":"① 우사기가 수박씨를 뱉어 모몽가를 쫓아낸 행동도 폭행일까요? 친구를 지키려고 한 행동은 어떻게 봐야 할까요? (힌트: 형법 제21조 정당방위)  ② 모몽가가 준 수박이라면, 모몽가에게도 그 수박을 먹을 권리가 남아 있을까요?","clips":[{"label":"371화 모몽가와 수박","url":"https://youtu.be/2CNe0DJyyzE","start":"0:00","end":"1:05"}]},{"id":"a2","title":"치이카와 세계의 일","episode":"18화 · 57화 · 61화 · 171화","summary":"치이카와들은 풀뽑기(제초) 같은 일을 해서 돈을 모으고, 모은 돈으로 물건을 산다(18화). 제초 일에는 급수를 매기는 검정 시험이 있어서 공부하고 시험을 본 뒤 합격 발표를 확인한다(57~61화). 171화에서는 치이카와가 개미귀신 구덩이에 빠져 필사적으로 탈출하려다 우연히 토벌에 성공한다.","cards":[{"scene":"풀뽑기(제초) 일을 하고 정해진 보수를 받는다","law":"근로기준법 – 임금","zone":"social","ex":"일하는 사람(근로자)이 정당한 대가를 받도록 국가가 개인 사이의 고용 관계에 끼어드는 법이에요. 노동법은 사회법이에요."},{"scene":"만약 보수가 법이 정한 최소 금액보다 적다면","law":"최저임금법","zone":"social","ex":"고용주와 근로자는 개인끼리지만, 약한 쪽인 근로자를 보호하려고 국가가 최소 임금을 정해요. 그래서 사회법이에요."},{"scene":"토벌 일을 하다가 개미귀신 구덩이에 빠져 다칠 뻔한다","law":"산업재해보상보험법","zone":"social","ex":"일하다가 다치거나 병에 걸린 근로자에게 보상해 주는 법이에요. 근로자를 보호하는 사회법이에요."},{"scene":"만약 다쳐서 일을 못 하게 되어 생활비를 지원받는다면","law":"국민기초생활 보장법 (사회보장법)","zone":"social","ex":"어려운 사람의 생활을 국가가 보장해 주는 사회보장법은 사회법이에요."},{"scene":"제초 검정 시험을 보고 합격자 발표를 확인한다","law":"국가기술자격법 (행정법)","zone":"public","ex":"현실에서 국가가 자격시험을 정하고 합격 여부를 관리하는 것은 국가와 개인 사이의 관계라서 공법이에요."},{"scene":"열심히 모은 돈으로 하치와레(가르마)와 같은 무기를 산다","law":"민법 – 매매계약","zone":"private","ex":"물건을 사고파는 것은 파는 사람과 사는 사람, 개인과 개인 사이의 약속(계약)이라서 사법이에요."},{"scene":"만약 친구에게 돈을 빌리고 다음 보수를 받으면 갚기로 한다면","law":"민법 – 소비대차(돈 빌리기)","zone":"private","ex":"개인끼리 돈을 빌리고 갚는 관계는 민법이 다루는 사법이에요."}],"discuss":"치이카와들이 하는 토벌은 아주 위험한 일이에요. 위험한 일을 하는 사람을 보호하려면 어떤 법이 더 필요할까요?","clips":[{"label":"18화 풀뽑기 · 커플 무기","url":"https://www.youtube.com/watch?v=_4HEngaUROg","start":"","end":""},{"label":"57화 제초 검정","url":"https://www.youtube.com/watch?v=svuXycRFwD0","start":"","end":""},{"label":"61화 합격 발표","url":"https://www.youtube.com/watch?v=3roPNdzI6OI","start":"","end":""},{"label":"171화 개미귀신","url":"https://youtu.be/OtiKe6VY7gg","start":"0:38","end":"1:00"}]}]}</script>
+</head>
+<body>
+<div id="app"></div>
+<script id="app-js">
+(function(){
+  const ZONES = [
+    {id:'public', name:'공법', desc:'국가와 개인 사이의 관계 · 헌법, 형법, 행정법, 소송법'},
+    {id:'private', name:'사법', desc:'개인과 개인 사이의 관계 · 민법, 상법'},
+    {id:'social', name:'사회법', desc:'약자를 보호하려고 국가가 개인 사이에 끼어듦 · 노동법, 경제법, 사회보장법'}
+  ];
+  const ZNAME = {public:'공법', private:'사법', social:'사회법'};
+  const LS_KEY = 'law-sort-draft-v1';
+  const $app = document.getElementById('app');
+
+  let DATA = JSON.parse(document.getElementById('data').textContent);
+  let usingLocal = false;
+  let artifactApi = null;
+  try{
+    const saved = localStorage.getItem(LS_KEY);
+    if(saved){ const d = JSON.parse(saved); if(d && d.saved_on_version === dataHash(DATA)){ DATA = d.data; usingLocal = true; } }
+  }catch(e){}
+
+  let cur = 0, mode = 'play', hint = true;
+  let placement = {}, order = [], checked = false, selected = null;
+
+  function dataHash(d){ const s = JSON.stringify(d); let h=0; for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))|0} return h; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a; }
+  function toSec(t){ t=String(t||'').trim(); if(!t) return null; if(/^\d+$/.test(t)) return +t; const p=t.split(':').map(Number); if(p.some(isNaN)) return null; return p.reduce((a,b)=>a*60+b,0); }
+  function fmt(s){ if(s==null) return ''; const m=Math.floor(s/60), r=s%60; return m+':'+String(r).padStart(2,'0'); }
+  function ytId(u){ u=String(u||'').trim(); if(!u) return null;
+    let m=u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([A-Za-z0-9_-]{11})/); if(m) return m[1];
+    if(/^[A-Za-z0-9_-]{11}$/.test(u)) return u; return null; }
+
+  function normalize(d){
+    (d.activities||[]).forEach(a=>{
+      if(!Array.isArray(a.clips)){ a.clips = (a.url||'').trim() ? [{label:a.episode||'', url:a.url, start:a.start||'', end:a.end||''}] : []; }
+      delete a.url; delete a.start; delete a.end;
+    });
+    return d;
+  }
+  normalize(DATA);
+  function clipButtons(clips){
+    if(!clips || !clips.length) return `<div class="nolink">영상 링크가 아직 없어요<br>교사 편집에서 넣을 수 있어요</div>`;
+    return `<div class="clips">${clips.map(c=>{
+      const id = ytId(c.url), st = toSec(c.start), en = toSec(c.end);
+      const range = (st!=null||en!=null) ? (fmt(st||0)+(en!=null?' ~ '+fmt(en):'')) : '';
+      const label = c.label || '장면 보기';
+      if(!id) return `<div class="nolink small">${esc(label)} · 링크 없음</div>`;
+      const link = 'https://www.youtube.com/watch?v='+id+(st?'&t='+st+'s':'');
+      return `<a class="watch" href="${esc(link)}" target="_blank" rel="noopener">▶ ${esc(label)}${range?` <span class="t">${esc(range)}</span>`:''}</a>`;
+    }).join('')}</div>`;
+  }
+  function act(){ return DATA.activities[cur]; }
+  function resetPlay(){
+    const a = act(); placement = {}; checked = false; selected = null;
+    order = shuffle(a.cards.map((_,i)=>i));
+    order.forEach(i=>placement[i]='pool');
+  }
+
+  /* ---------- PLAY VIEW ---------- */
+  function render(){
+    if(mode==='edit') return renderEditor();
+    const a = act();
+    const clipsHTML = clipButtons(a.clips);
+    const total = a.cards.length;
+    const okN = checked ? a.cards.filter((c,i)=>placement[i]===c.zone).length : 0;
+    const left = a.cards.filter((c,i)=>placement[i]==='pool').length;
+
+    $app.innerHTML = `
+    <div class="wrap ${hint?'':'hidehint'} ${checked?'checked':''}">
+      <header class="top">
+        <h1>장면 속 법 찾기<small>장면을 보고, 카드를 알맞은 칸으로 끌어다 넣어 보세요.</small></h1>
+        <nav class="tabs">${DATA.activities.map((x,i)=>`<button class="tab ${i===cur?'on':''}" data-tab="${i}">${esc(x.title)}</button>`).join('')}</nav>
+      </header>
+      <section class="scene">
+        <div>
+          <div class="ep">${esc(a.episode)}</div>
+          <h2>${esc(a.title)}</h2>
+          <p>${esc(a.summary)}</p>
+        </div>
+        ${clipsHTML}
+      </section>
+      <div class="guide">
+        <b>카드 ${total}장 · 남은 카드 ${left}장</b>
+        <label class="chk"><input type="checkbox" id="hintToggle" ${hint?'checked':''}> 칸 설명 보이기</label>
+      </div>
+      <div class="pool ${left===0?'empty':''}" data-zone="pool">${order.filter(i=>placement[i]==='pool').map(cardHTML).join('')}</div>
+      <div class="zones">
+        ${ZONES.map(z=>`<div class="zone ${selected!=null?'target':''}" data-zone="${z.id}">
+          <div class="zhead"><h3>${z.name}</h3><p>${z.desc}</p></div>
+          ${order.filter(i=>placement[i]===z.id).map(cardHTML).join('')}
+        </div>`).join('')}
+      </div>
+      ${checked ? `<div class="result">${total}장 중 ${okN}장 맞았어요! ${okN===total?'🎉':''}</div>`:''}
+      <div class="bar">
+        ${checked ? `<button class="btn" id="again">다시 하기</button>`
+                  : `<button class="btn" id="check" ${left?'disabled style="opacity:.45;cursor:not-allowed"':''}>${left?`카드 ${left}장을 더 옮겨야 확인할 수 있어요`:'정답 확인'}</button><button class="btn ghostbtn" id="reset">처음부터</button>`}
+      </div>
+      ${checked && a.discuss ? `<div class="discuss"><b>💬 함께 생각해 봐요</b><p>${esc(a.discuss)}</p></div>`:''}
+      <footer>${usingLocal?'이 브라우저에 저장된 내용을 보여 주고 있어요 · ':''}<button id="toEdit">교사 편집</button></footer>
+    </div>`;
+    bindPlay();
+  }
+
+  function cardHTML(i){
+    const c = act().cards[i]; const z = placement[i];
+    let cls = 'card', mark = '';
+    if(checked && z!=='pool'){ const ok = z===c.zone; cls += ok?' ok':' bad'; mark = `<span class="mark">${ok?'O':'X'}</span>`; }
+    if(selected===i) cls += ' sel';
+    const ex = checked ? `<div class="ex">${z===c.zone?'':`정답은 <b>${ZNAME[c.zone]}</b> · `}${esc(c.ex)}</div>` : '';
+    return `<div class="${cls}" data-card="${i}">${mark}<div class="s">${esc(c.scene)}</div><div class="l">${esc(c.law)}</div>${ex}</div>`;
+  }
+
+  function bindPlay(){
+    $app.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{cur=+b.dataset.tab; resetPlay(); render();});
+    const ht = document.getElementById('hintToggle'); if(ht) ht.onchange=()=>{hint=ht.checked; render();};
+    const ck = document.getElementById('check'); if(ck) ck.onclick=()=>{checked=true; selected=null; render();};
+    const rs = document.getElementById('reset'); if(rs) rs.onclick=()=>{resetPlay(); render();};
+    const ag = document.getElementById('again'); if(ag) ag.onclick=()=>{resetPlay(); render();};
+    document.getElementById('toEdit').onclick=()=>{mode='edit'; render(); window.scrollTo(0,0);};
+    if(checked) return;
+    $app.querySelectorAll('[data-zone]').forEach(z=>z.addEventListener('click',e=>{
+      if(selected==null || e.target.closest('[data-card]')) return;
+      placement[selected]=z.dataset.zone; selected=null; render();
+    }));
+    $app.querySelectorAll('[data-card]').forEach(el=>el.addEventListener('pointerdown',startDrag));
+  }
+
+  /* drag with pointer events (works for mouse and touch) */
+  let drag = null;
+  function startDrag(e){
+    if(e.button!==undefined && e.button!==0) return;
+    const el = e.currentTarget; const i = +el.dataset.card;
+    drag = {i, el, sx:e.clientX, sy:e.clientY, moved:false, ghost:null, ox:0, oy:0, hot:null};
+    el.setPointerCapture && el.setPointerCapture(e.pointerId);
+    el.addEventListener('pointermove',onMove); el.addEventListener('pointerup',onUp); el.addEventListener('pointercancel',onCancel);
+  }
+  function onMove(e){
+    if(!drag) return;
+    if(!drag.moved){
+      if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<6) return;
+      drag.moved = true;
+      const r = drag.el.getBoundingClientRect();
+      const g = drag.el.cloneNode(true); g.classList.add('ghost'); g.classList.remove('sel');
+      g.style.width = r.width+'px'; document.body.appendChild(g);
+      drag.ghost = g; drag.ox = drag.sx-r.left; drag.oy = drag.sy-r.top;
+      drag.el.classList.add('ghostsrc');
+    }
+    drag.ghost.style.left = (e.clientX-drag.ox)+'px'; drag.ghost.style.top = (e.clientY-drag.oy)+'px';
+    const z = zoneAt(e.clientX,e.clientY);
+    if(drag.hot!==z){ drag.hot && drag.hot.classList.remove('hot'); z && z.classList.add('hot'); drag.hot=z; }
+  }
+  function zoneAt(x,y){ const t = document.elementFromPoint(x,y); return t ? t.closest('[data-zone]') : null; }
+  function cleanup(){
+    if(!drag) return;
+    drag.el.removeEventListener('pointermove',onMove); drag.el.removeEventListener('pointerup',onUp); drag.el.removeEventListener('pointercancel',onCancel);
+    drag.ghost && drag.ghost.remove(); drag.hot && drag.hot.classList.remove('hot'); drag.el.classList.remove('ghostsrc');
+  }
+  function onUp(e){
+    if(!drag) return; const d = drag; cleanup(); drag = null;
+    if(!d.moved){ selected = (selected===d.i) ? null : d.i; render(); return; }
+    const z = zoneAt(e.clientX,e.clientY);
+    if(z){ placement[d.i] = z.dataset.zone; selected = null; }
+    render();
+  }
+  function onCancel(){ cleanup(); drag=null; render(); }
+
+  /* ---------- EDITOR ---------- */
+  let draft = null, eCur = 0, msg = {t:'',cls:''};
+  function renderEditor(){
+    if(!draft) draft = JSON.parse(JSON.stringify(DATA));
+    if(eCur>=draft.activities.length) eCur = draft.activities.length-1;
+    const a = draft.activities[eCur];
+    $app.innerHTML = `
+    <div class="wrap">
+      <header class="top"><h1>교사 편집<small>장면과 카드를 고치고 저장하면 이 페이지를 보는 모두에게 반영돼요.</small></h1>
+        <div class="tabs"><button class="btn ghostbtn small" id="back">← 활동으로 돌아가기</button></div>
+      </header>
+      <div class="editor">
+        <div class="etop">
+          <nav class="tabs">${draft.activities.map((x,i)=>`<button class="tab ${i===eCur?'on':''}" data-etab="${i}">${esc(x.title||'(제목 없음)')}</button>`).join('')}
+            <button class="tab" id="addAct">+ 활동 추가</button></nav>
+          <button class="btn danger small" id="delAct">이 활동 삭제</button>
+        </div>
+        <div class="erow"><label>활동 제목</label><input data-f="title" value="${esc(a.title)}"></div>
+        <div class="erow"><label>회차 표시</label><input data-f="episode" value="${esc(a.episode)}" placeholder="예: 171화"></div>
+        <div class="erow"><label>영상 (${a.clips.length}개)</label><div class="eclips">${a.clips.map((c,i)=>`
+          <div class="eclip">
+            <input data-v="${i}" data-k="label" value="${esc(c.label)}" placeholder="버튼 이름 (예: 18화 풀뽑기)">
+            <input data-v="${i}" data-k="url" value="${esc(c.url)}" placeholder="유튜브 링크 (일반 · youtu.be · Shorts)">
+            <div class="times"><input data-v="${i}" data-k="start" value="${esc(c.start)}" placeholder="시작 0:30"> ~ <input data-v="${i}" data-k="end" value="${esc(c.end)}" placeholder="끝 1:05"></div>
+            <button class="btn danger small" data-vdel="${i}">삭제</button>
+          </div>`).join('')}
+          <div><button class="btn ghostbtn small" id="addClip">+ 영상 추가</button></div>
+        </div></div>
+        <div class="erow"><label>장면 요약</label><textarea data-f="summary">${esc(a.summary)}</textarea></div>
+        <div class="erow"><label>토론 질문</label><textarea data-f="discuss" placeholder="정답 확인 후에 보여 줄 질문 (비워도 돼요)">${esc(a.discuss)}</textarea></div>
+        <h2 style="margin-top:16px">카드 (${a.cards.length}장)</h2>
+        <div class="ecards">${a.cards.map((c,i)=>`
+          <div class="ecard">
+            <textarea data-c="${i}" data-k="scene" placeholder="장면">${esc(c.scene)}</textarea>
+            <textarea data-c="${i}" data-k="law" placeholder="법">${esc(c.law)}</textarea>
+            <select data-c="${i}" data-k="zone">${ZONES.map(z=>`<option value="${z.id}" ${c.zone===z.id?'selected':''}>${z.name}</option>`).join('')}</select>
+            <button class="btn danger small" data-del="${i}">삭제</button>
+            <textarea class="full" data-c="${i}" data-k="ex" placeholder="해설 (정답 확인 후 보여요)">${esc(c.ex)}</textarea>
+          </div>`).join('')}
+        </div>
+        <div class="bar" style="justify-content:flex-start"><button class="btn ghostbtn small" id="addCard">+ 카드 추가</button></div>
+        <div class="bar">
+          <button class="btn" id="save">저장하기</button>
+          <button class="btn ghostbtn" id="discard">변경 취소</button>
+        </div>
+        <div class="msg ${msg.cls}" id="msg">${esc(msg.t)}</div>
+        <div class="jsonbox">
+          <b>백업 · 옮기기</b>
+          <p style="margin:4px 0 8px;font-size:.88rem;color:var(--muted)">아래 내용을 복사해 두면 나중에 그대로 불러올 수 있어요.</p>
+          <textarea id="json">${esc(JSON.stringify(draft,null,1))}</textarea>
+          <div class="bar" style="justify-content:flex-start">
+            <button class="btn ghostbtn small" id="copyJson">복사</button>
+            <button class="btn ghostbtn small" id="loadJson">붙여넣은 내용 불러오기</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+    bindEditor();
+  }
+  function setMsg(t,cls){ msg={t,cls}; const m=document.getElementById('msg'); if(m){m.textContent=t; m.className='msg '+(cls||'');} }
+  function bindEditor(){
+    const a = draft.activities[eCur];
+    document.getElementById('back').onclick=()=>{mode='play'; draft=null; msg={t:'',cls:''}; render();};
+    $app.querySelectorAll('[data-etab]').forEach(b=>b.onclick=()=>{eCur=+b.dataset.etab; renderEditor();});
+    $app.querySelectorAll('[data-f]').forEach(inp=>inp.oninput=()=>{a[inp.dataset.f]=inp.value; syncJson();});
+    $app.querySelectorAll('[data-c]').forEach(inp=>{const h=()=>{a.cards[+inp.dataset.c][inp.dataset.k]=inp.value; syncJson();}; inp.oninput=h; inp.onchange=h;});
+    $app.querySelectorAll('[data-v]').forEach(inp=>inp.oninput=()=>{a.clips[+inp.dataset.v][inp.dataset.k]=inp.value; syncJson();});
+    $app.querySelectorAll('[data-vdel]').forEach(b=>b.onclick=()=>{a.clips.splice(+b.dataset.vdel,1); renderEditor();});
+    document.getElementById('addClip').onclick=()=>{a.clips.push({label:'',url:'',start:'',end:''}); renderEditor();};
+    $app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{a.cards.splice(+b.dataset.del,1); renderEditor();});
+    document.getElementById('addCard').onclick=()=>{a.cards.push({scene:'',law:'',zone:'public',ex:''}); renderEditor();};
+    document.getElementById('addAct').onclick=()=>{draft.activities.push({id:'a'+Date.now(),title:'새 활동',episode:'',clips:[],summary:'',cards:[{scene:'',law:'',zone:'public',ex:''}],discuss:''}); eCur=draft.activities.length-1; renderEditor();};
+    const del = document.getElementById('delAct');
+    del.onclick=()=>{
+      if(draft.activities.length<=1){ setMsg('활동은 하나 이상 있어야 해요.','err'); return; }
+      if(del.dataset.armed){ draft.activities.splice(eCur,1); eCur=Math.max(0,eCur-1); renderEditor(); }
+      else { del.dataset.armed='1'; del.textContent='정말 삭제할까요? 한 번 더 누르기'; }
+    };
+    document.getElementById('discard').onclick=()=>{draft=null; setMsg('',''); renderEditor();};
+    document.getElementById('save').onclick=save;
+    document.getElementById('copyJson').onclick=async()=>{
+      try{ await navigator.clipboard.writeText(document.getElementById('json').value); setMsg('복사했어요.','good'); }
+      catch(e){ const t=document.getElementById('json'); t.focus(); t.select(); setMsg('자동 복사가 막혀 있어요. 선택된 내용을 Ctrl+C로 복사해 주세요.','err'); }
+    };
+    document.getElementById('loadJson').onclick=()=>{
+      try{ const d=normalize(JSON.parse(document.getElementById('json').value)); if(!d.activities||!d.activities.length) throw 0; draft=d; eCur=0; msg={t:'불러왔어요. 저장하기를 눌러야 반영돼요.',cls:'good'}; renderEditor(); }
+      catch(e){ setMsg('내용을 읽을 수 없어요. 복사한 내용 전체를 붙여넣었는지 확인해 주세요.','err'); }
+    };
+  }
+  function syncJson(){ const t=document.getElementById('json'); if(t) t.value=JSON.stringify(draft,null,1); }
+  function clean(d){
+    d.activities.forEach(a=>{ a.cards=a.cards.filter(c=>(c.scene||'').trim()||(c.law||'').trim()); });
+    return d;
+  }
+  function buildDoc(d){
+    const css = document.getElementById('css').textContent;
+    const js = document.getElementById('app-js').textContent;
+    const json = JSON.stringify(d).replace(/</g,'\\u003c');
+    const S = 'script', ST = 'style';
+    return '<!DOCTYPE html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>장면 속 법 찾기</title>\n'
+      + '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">\n'
+      + '<'+ST+' id="css">'+css+'</'+ST+'>\n'
+      + '<'+S+' id="data" type="application/json">'+json+'</'+S+'>\n</head>\n<body>\n<div id="app"></div>\n'
+      + '<'+S+' id="app-js">'+js+'</'+S+'>\n</body>\n</html>\n';
+  }
+  async function save(){
+    const d = clean(JSON.parse(JSON.stringify(draft)));
+    if(d.activities.some(a=>!a.cards.length)){ setMsg('카드가 없는 활동이 있어요. 카드를 하나 이상 넣어 주세요.','err'); return; }
+    setMsg('저장하는 중…','');
+    if(artifactApi){
+      try{ await artifactApi.publish(buildDoc(d)); setMsg('저장했어요! 페이지가 새로 고쳐져요.','good'); return; }
+      catch(e){
+        const s = String((e && (e.code||e.message))||e);
+        if(/not_granted|not_writer/.test(s)) setMsg('이 계정에는 저장 권한이 없어요. 페이지를 만든 선생님 계정에서 저장해 주세요.','err');
+        else if(/conflict/.test(s)) setMsg('다른 곳에서 먼저 저장되어 페이지가 새로 고쳐져요. 다시 편집해 주세요.','err');
+        else setMsg('저장하지 못했어요: '+s,'err');
+        return;
+      }
+    }
+    try{ localStorage.setItem(LS_KEY, JSON.stringify({saved_on_version:dataHash(JSON.parse(document.getElementById('data').textContent)), data:d}));
+      DATA = d; usingLocal = true; draft = JSON.parse(JSON.stringify(d));
+      setMsg('이 브라우저에만 저장했어요. 다른 사람에게도 보이게 하려면 위의 내용을 복사해서 전달해 주세요.','good');
+    }catch(e){ setMsg('저장할 수 없는 환경이에요. 위의 내용을 복사해 두세요.','err'); }
+  }
+
+  resetPlay(); render();
+  if(window.claude && typeof window.claude.use==='function'){
+    window.claude.use('artifact').then(x=>{ artifactApi = x || null; }).catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
